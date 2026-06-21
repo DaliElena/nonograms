@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nonogram Viewer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    background: #16213e;
+    border-bottom: 2px solid #0f3460;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  header h1 {
+    font-size: 1.4rem;
+    color: #e94560;
+    white-space: nowrap;
+  }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+
+  select, input[type=text] {
+    background: #0f3460;
+    border: 1px solid #e94560;
+    color: #e0e0e0;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+  }
+
+  input[type=text] { width: 200px; }
+
+  button {
+    background: #e94560;
+    color: white;
+    border: none;
+    padding: 7px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.2s;
+  }
+  button:hover { background: #c73652; }
+  button:disabled { background: #555; cursor: default; }
+
+  .toggle-btn {
+    background: #0f3460;
+    border: 1px solid #e94560;
+  }
+  .toggle-btn.active { background: #e94560; }
+
+  #status {
+    font-size: 0.85rem;
+    color: #aaa;
+  }
+
+  main {
+    display: flex;
+    flex: 1;
+    gap: 0;
+  }
+
+  #sidebar {
+    width: 220px;
+    min-width: 180px;
+    background: #16213e;
+    border-right: 1px solid #0f3460;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #sidebar-header {
+    padding: 10px 12px;
+    font-size: 0.8rem;
+    color: #aaa;
+    border-bottom: 1px solid #0f3460;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  #puzzle-list {
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .puzzle-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    border-bottom: 1px solid #0f3460;
+    transition: background 0.15s;
+  }
+  .puzzle-item:hover { background: #0f3460; }
+  .puzzle-item.selected { background: #e94560; color: white; }
+
+  #content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px;
+    overflow: auto;
+  }
+
+  #puzzle-title {
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+    color: #e94560;
+  }
+
+  #nonogram-wrap {
+    overflow: auto;
+    max-width: 100%;
+  }
+
+  table.nonogram {
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  .clue-cell {
+    text-align: center;
+    vertical-align: bottom;
+    font-size: 0.7rem;
+    color: #ccc;
+    padding: 2px 3px;
+    min-width: 24px;
+    min-height: 24px;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .clue-cell.row-clue {
+    text-align: right;
+    vertical-align: middle;
+    white-space: nowrap;
+    padding-right: 6px;
+  }
+
+  .clue-cell.col-clue {
+    writing-mode: initial;
+    width: 24px;
+  }
+
+  .col-clue-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 1px;
+  }
+
+  td.grid-cell {
+    width: 24px;
+    height: 24px;
+    border: 1px solid #2a2a4a;
+    cursor: pointer;
+    background: #1a1a2e;
+    transition: background 0.1s;
+  }
+
+  td.grid-cell:hover { background: #2a4060; }
+  td.grid-cell.filled { background: #e94560; border-color: #c73652; }
+  td.grid-cell.crossed {
+    background: #1a1a2e;
+    position: relative;
+  }
+  td.grid-cell.crossed::after {
+    content: '×';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 14px;
+    color: #555;
+    line-height: 1;
+  }
+
+  /* Group borders every 5 cells */
+  .grid-cell.border-top { border-top: 2px solid #4a4a6a !important; }
+  .grid-cell.border-left { border-left: 2px solid #4a4a6a !important; }
+
+  #no-puzzle {
+    color: #555;
+    font-size: 1.1rem;
+    margin-top: 80px;
+  }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    margin-top: 16px;
+    font-size: 0.8rem;
+    color: #aaa;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-box {
+    width: 16px; height: 16px; border: 1px solid #555;
+    border-radius: 2px;
+  }
+  .legend-box.filled { background: #e94560; }
+  .legend-box.crossed { background: #1a1a2e; position: relative; }
+  .legend-box.crossed::after { content: '×'; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 11px; color: #555; }
+
+  #file-label {
+    background: #0f3460;
+    border: 1px solid #e94560;
+    color: #e0e0e0;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+  #file-label:hover { background: #1a3a70; }
+  #file-input { display: none; }
+
+  .nav-btns { display: flex; gap: 6px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Nonogram Viewer</h1>
+  <div class="controls">
+    <label id="file-label">
+      📂 Открыть файл
+      <input type="file" id="file-input" accept=".json">
+    </label>
+    <input type="text" id="search" placeholder="Поиск по ID...">
+    <select id="size-filter">
+      <option value="">Все размеры</option>
+    </select>
+    <div class="nav-btns">
+      <button id="prev-btn" disabled>◀ Пред</button>
+      <button id="next-btn" disabled>След ▶</button>
+    </div>
+    <button class="toggle-btn" id="show-solution">Показать решение</button>
+    <button id="reset-btn">Сброс</button>
+    <span id="status"></span>
+  </div>
+</header>
+
+<main>
+  <div id="sidebar">
+    <div id="sidebar-header">
+      <span id="list-count">Загрузите файл</span>
+    </div>
+    <div id="puzzle-list"></div>
+  </div>
+
+  <div id="content">
+    <div id="no-puzzle">Загрузите файл с нанограмами</div>
+    <div id="puzzle-title" style="display:none"></div>
+    <div id="nonogram-wrap"></div>
+    <div class="legend" id="legend" style="display:none">
+      <div class="legend-item"><div class="legend-box filled"></div>Заполнено (ЛКМ)</div>
+      <div class="legend-item"><div class="legend-box crossed"></div>Пустое (ПКМ)</div>
+    </div>
+  </div>
+</main>
+
+<script>
+let dataset = null;
+let puzzleKeys = [];
+let filteredKeys = [];
+let currentIndex = -1;
+let showSolution = false;
+let userGrid = [];
+
+// --- File loading ---
+document.getElementById('file-input').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  document.getElementById('status').textContent = 'Загрузка...';
+  const reader = new FileReader();
+  reader.onload = evt => {
+    try {
+      dataset = JSON.parse(evt.target.result);
+      puzzleKeys = Object.keys(dataset.data);
+      document.getElementById('status').textContent = `Загружено ${puzzleKeys.length} нанограм`;
+      initSizeFilter();
+      applyFilter();
+    } catch {
+      alert('Ошибка чтения файла JSON');
+    }
+  };
+  reader.readAsText(file);
+});
+
+function initSizeFilter() {
+  const sizes = new Set(puzzleKeys.map(k => k.split('_')[1]));
+  const sel = document.getElementById('size-filter');
+  sel.innerHTML = '<option value="">Все размеры</option>';
+  [...sizes].sort().forEach(s => {
+    const o = document.createElement('option');
+    o.value = s; o.textContent = s;
+    sel.appendChild(o);
+  });
+}
+
+document.getElementById('size-filter').addEventListener('change', applyFilter);
+document.getElementById('search').addEventListener('input', applyFilter);
+
+function applyFilter() {
+  const search = document.getElementById('search').value.toLowerCase();
+  const size = document.getElementById('size-filter').value;
+  filteredKeys = puzzleKeys.filter(k => {
+    if (size && !k.endsWith(size)) return false;
+    if (search && !k.toLowerCase().includes(search)) return false;
+    return true;
+  });
+  renderSidebar();
+  if (filteredKeys.length > 0) {
+    selectPuzzle(0);
+  } else {
+    currentIndex = -1;
+    clearPuzzle();
+  }
+}
+
+function renderSidebar() {
+  const list = document.getElementById('puzzle-list');
+  document.getElementById('list-count').textContent = `${filteredKeys.length} нанограм`;
+  list.innerHTML = '';
+  filteredKeys.forEach((key, i) => {
+    const div = document.createElement('div');
+    div.className = 'puzzle-item' + (i === currentIndex ? ' selected' : '');
+    div.textContent = key;
+    div.addEventListener('click', () => selectPuzzle(i));
+    list.appendChild(div);
+  });
+}
+
+function selectPuzzle(index) {
+  currentIndex = index;
+  showSolution = false;
+  document.getElementById('show-solution').classList.remove('active');
+  document.getElementById('show-solution').textContent = 'Показать решение';
+  renderSidebar();
+  updateNavBtns();
+  renderPuzzle(filteredKeys[index]);
+  // Scroll sidebar to selected
+  const items = document.querySelectorAll('.puzzle-item');
+  if (items[index]) items[index].scrollIntoView({ block: 'nearest' });
+}
+
+function updateNavBtns() {
+  document.getElementById('prev-btn').disabled = currentIndex <= 0;
+  document.getElementById('next-btn').disabled = currentIndex >= filteredKeys.length - 1;
+}
+
+document.getElementById('prev-btn').addEventListener('click', () => {
+  if (currentIndex > 0) selectPuzzle(currentIndex - 1);
+});
+document.getElementById('next-btn').addEventListener('click', () => {
+  if (currentIndex < filteredKeys.length - 1) selectPuzzle(currentIndex + 1);
+});
+
+document.getElementById('show-solution').addEventListener('click', () => {
+  showSolution = !showSolution;
+  const btn = document.getElementById('show-solution');
+  btn.classList.toggle('active', showSolution);
+  btn.textContent = showSolution ? 'Скрыть решение' : 'Показать решение';
+  if (filteredKeys[currentIndex]) renderPuzzle(filteredKeys[currentIndex]);
+});
+
+document.getElementById('reset-btn').addEventListener('click', () => {
+  showSolution = false;
+  document.getElementById('show-solution').classList.remove('active');
+  document.getElementById('show-solution').textContent = 'Показать решение';
+  userGrid = userGrid.map(r => r.map(() => 0));
+  if (filteredKeys[currentIndex]) renderPuzzle(filteredKeys[currentIndex]);
+});
+
+// Keyboard navigation
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    if (currentIndex > 0) selectPuzzle(currentIndex - 1);
+  } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+    if (currentIndex < filteredKeys.length - 1) selectPuzzle(currentIndex + 1);
+  }
+});
+
+// --- Parsing ---
+function parseProblem(str) {
+  const lines = str.trim().split('\n');
+  const [rows, cols] = lines[0].trim().split(/\s+/).map(Number);
+  const rowClues = [];
+  for (let i = 1; i <= rows; i++) {
+    rowClues.push(lines[i].trim().split(/\s+/).map(Number));
+  }
+  const colClues = [];
+  for (let i = rows + 1; i < rows + 1 + cols; i++) {
+    colClues.push(lines[i].trim().split(/\s+/).map(Number));
+  }
+  return { rows, cols, rowClues, colClues };
+}
+
+function parseSolution(str) {
+  const lines = str.trim().split('\n');
+  const [rows, cols] = lines[0].trim().split(/\s+/).map(Number);
+  const grid = [];
+  for (let i = 1; i <= rows; i++) {
+    grid.push(lines[i].trim().split(/\s+/).map(c => c === 'x' ? 1 : 0));
+  }
+  return grid;
+}
+
+// --- Rendering ---
+function clearPuzzle() {
+  document.getElementById('no-puzzle').style.display = '';
+  document.getElementById('puzzle-title').style.display = 'none';
+  document.getElementById('nonogram-wrap').innerHTML = '';
+  document.getElementById('legend').style.display = 'none';
+}
+
+function renderPuzzle(key) {
+  const entry = dataset.data[key];
+  const { rows, cols, rowClues, colClues } = parseProblem(entry.problem);
+  const solution = entry.solution ? parseSolution(entry.solution) : null;
+
+  document.getElementById('no-puzzle').style.display = 'none';
+  document.getElementById('puzzle-title').style.display = '';
+  document.getElementById('puzzle-title').textContent = key;
+  document.getElementById('legend').style.display = showSolution ? 'none' : 'flex';
+
+  if (!showSolution) {
+    if (!userGrid.length || userGrid.length !== rows || userGrid[0].length !== cols) {
+      userGrid = Array.from({ length: rows }, () => new Array(cols).fill(0));
+    }
+  }
+
+  const table = document.createElement('table');
+  table.className = 'nonogram';
+  table.addEventListener('contextmenu', e => e.preventDefault());
+
+  // Max col clue length (number of numbers per column)
+  const maxColClueLen = Math.max(...colClues.map(c => c.length));
+  // Max row clue length (formatted string)
+  const maxRowClueLen = Math.max(...rowClues.map(c => c.join(' ').length));
+
+  // Header rows (col clues)
+  for (let ci = 0; ci < maxColClueLen; ci++) {
+    const tr = document.createElement('tr');
+    // Corner cell(s)
+    const corner = document.createElement('td');
+    corner.className = 'clue-cell';
+    tr.appendChild(corner);
+    // Col clue rows
+    for (let c = 0; c < cols; c++) {
+      const td = document.createElement('td');
+      td.className = 'clue-cell col-clue';
+      const clue = colClues[c];
+      const offset = maxColClueLen - clue.length;
+      const val = ci - offset;
+      td.textContent = val >= 0 ? clue[val] : '';
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+  }
+
+  // Grid rows
+  for (let r = 0; r < rows; r++) {
+    const tr = document.createElement('tr');
+
+    // Row clue
+    const clueCell = document.createElement('td');
+    clueCell.className = 'clue-cell row-clue';
+    clueCell.textContent = rowClues[r].join(' ');
+    tr.appendChild(clueCell);
+
+    for (let c = 0; c < cols; c++) {
+      const td = document.createElement('td');
+      td.className = 'grid-cell';
+
+      if (r % 5 === 0) td.classList.add('border-top');
+      if (c % 5 === 0) td.classList.add('border-left');
+
+      if (showSolution && solution) {
+        if (solution[r][c] === 1) td.classList.add('filled');
+      } else {
+        const val = userGrid[r][c];
+        if (val === 1) td.classList.add('filled');
+        else if (val === 2) td.classList.add('crossed');
+
+        td.addEventListener('mousedown', e => {
+          e.preventDefault();
+          if (e.button === 0) {
+            userGrid[r][c] = userGrid[r][c] === 1 ? 0 : 1;
+          } else if (e.button === 2) {
+            userGrid[r][c] = userGrid[r][c] === 2 ? 0 : 2;
+          }
+          td.className = 'grid-cell';
+          if (r % 5 === 0) td.classList.add('border-top');
+          if (c % 5 === 0) td.classList.add('border-left');
+          if (userGrid[r][c] === 1) td.classList.add('filled');
+          else if (userGrid[r][c] === 2) td.classList.add('crossed');
+        });
+      }
+
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+  }
+
+  const wrap = document.getElementById('nonogram-wrap');
+  wrap.innerHTML = '';
+  wrap.appendChild(table);
+}
+
+// Auto-load if file is in same dir (won't work from file://, need server)
+// Try fetch for convenience when served
+fetch('Nonogram_dataset.json')
+  .then(r => r.json())
+  .then(data => {
+    dataset = data;
+    puzzleKeys = Object.keys(dataset.data);
+    document.getElementById('status').textContent = `Загружено ${puzzleKeys.length} нанограм`;
+    initSizeFilter();
+    applyFilter();
+  })
+  .catch(() => {
+    // User will load manually
+  });
+</script>
+</body>
+</html>
