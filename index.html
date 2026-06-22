@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nonogram Viewer</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#8b5cf6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
   /* ─── Dark theme (default) ─────────────────────────────── */
   :root {
@@ -318,6 +323,107 @@
     padding-left: 17px;
   }
   .puzzle-item.selected::before { transform: scaleY(1); }
+
+  /* ─── History section ──────────────────────────────────── */
+  #history-section {
+    flex-shrink: 0;
+    border-bottom: 2px solid var(--border-accent);
+    display: flex;
+    flex-direction: column;
+    max-height: 40%;
+  }
+  #history-section.empty { display: none; }
+
+  #history-header {
+    padding: 9px 13px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  #history-list {
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--surface-3) transparent;
+  }
+
+  .history-item {
+    padding: 7px 13px;
+    cursor: pointer;
+    font-size: 0.79rem;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+    transition: background var(--transition), color var(--transition), padding-left var(--transition);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .history-item::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 2px;
+    background: var(--accent-2);
+    transform: scaleY(0);
+    transition: transform var(--transition);
+    border-radius: 0 2px 2px 0;
+  }
+  .history-item:hover {
+    background: color-mix(in srgb, var(--accent-2) 8%, transparent);
+    color: var(--text-primary);
+    padding-left: 17px;
+  }
+  .history-item:hover::before { transform: scaleY(1); }
+  .history-item.selected {
+    background: color-mix(in srgb, var(--accent-2) 12%, transparent);
+    color: var(--accent-2);
+    padding-left: 17px;
+  }
+  .history-item.selected::before { transform: scaleY(1); }
+
+  .history-item-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .history-progress {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    font-feature-settings: 'tnum';
+  }
+
+  .history-del {
+    opacity: 0;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--transition), color var(--transition), opacity var(--transition);
+    line-height: 1;
+  }
+  .history-item:hover .history-del { opacity: 1; }
+  .history-del:hover { background: var(--surface-3); color: var(--text-primary); transform: none; box-shadow: none; }
 
   /* ─── Content ──────────────────────────────────────────── */
   #content {
@@ -638,6 +744,185 @@
     font-family: monospace;
     color: var(--text-primary);
   }
+
+  /* ─── Mobile ──────────────────────────────────────────── */
+  #sidebar-toggle {
+    display: none;
+  }
+
+  #sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 40;
+    backdrop-filter: blur(2px);
+  }
+  #sidebar-backdrop.open { display: block; }
+
+  @media (max-width: 640px) {
+    /* Make buttons touch-friendly */
+    button, #file-label {
+      min-height: 40px;
+      padding: 8px 12px;
+    }
+    .btn-icon { min-height: 40px; padding: 8px 10px; }
+    .history-del { width: 22px; height: 22px; opacity: 1; }
+
+    /* Compact header — single row */
+    header { padding: 8px 10px; gap: 6px; flex-wrap: nowrap; align-items: center; }
+    header h1 { font-size: 0.95rem; }
+    .header-divider { display: none; }
+    .controls { gap: 5px; flex-wrap: nowrap; flex: 1; align-items: center; }
+    #status { display: none; }
+    #search { display: none; }
+    .size-picker-wrap { display: none; }
+    #file-label span { display: none; } /* hide SVG icon text if any */
+    #file-label { padding: 8px 10px; gap: 0; font-size: 0; width: 40px; justify-content: center; }
+    #file-label svg { display: block; width: 16px; height: 16px; flex-shrink: 0; }
+    #show-solution { font-size: 0.78rem; padding: 8px 8px; }
+    #reset-btn { display: none; }
+
+    /* Sidebar becomes a bottom sheet */
+    #sidebar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      width: 100% !important;
+      min-width: unset;
+      height: 65vh;
+      border-right: none;
+      border-top: 1px solid var(--border-accent);
+      border-radius: 16px 16px 0 0;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+      z-index: 50;
+      background: var(--settings-bg);
+    }
+    #sidebar.open { transform: translateY(0); }
+
+    /* Drag handle above sidebar */
+    #sidebar::before {
+      content: '';
+      display: block;
+      width: 36px;
+      height: 4px;
+      background: var(--border-accent);
+      border-radius: 2px;
+      margin: 10px auto 4px;
+      flex-shrink: 0;
+    }
+
+    #sidebar-toggle {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.84rem;
+    }
+
+    /* Content takes full width */
+    main { flex-direction: column; }
+    #content { padding: 16px 12px; }
+
+    /* Navigation buttons shorter text */
+    #prev-btn { font-size: 0; }
+    #prev-btn::after { content: '←'; font-size: 0.84rem; }
+    #next-btn { font-size: 0; }
+    #next-btn::after { content: '→'; font-size: 0.84rem; }
+
+    /* Settings panel full-width on mobile */
+    #settings-panel { width: 100%; border-left: none; border-top: 1px solid var(--border); border-radius: 16px 16px 0 0; height: auto; max-height: 90vh; bottom: 0; top: auto; position: absolute; }
+    #settings-overlay { align-items: flex-end; justify-content: center; }
+    #settings-overlay.open #settings-panel { transform: translateY(0); }
+
+    /* Touch mode indicator */
+    #touch-mode-btn {
+      display: flex !important;
+    }
+
+    /* Bigger legend items for touch */
+    .legend { font-size: 0.82rem; gap: 12px; }
+
+    .no-puzzle-text { font-size: 0.85rem; text-align: center; }
+  }
+
+  /* ─── Size picker ──────────────────────────────────────── */
+  .size-picker-wrap {
+    position: relative;
+  }
+
+  #size-picker-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  #size-picker-btn .arrow {
+    font-size: 0.65rem;
+    transition: transform var(--transition);
+    display: inline-block;
+  }
+  #size-picker-btn.open .arrow { transform: rotate(180deg); }
+
+  #size-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 200;
+    background: var(--surface);
+    border: 1px solid var(--border-accent);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    padding: 8px;
+    display: none;
+    min-width: 160px;
+    animation: dropdownIn 0.15s cubic-bezier(0.4,0,0.2,1);
+  }
+  #size-dropdown.open { display: block; }
+
+  @keyframes dropdownIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .size-dropdown-title {
+    font-size: 0.69rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 2px 6px 8px;
+  }
+
+  .size-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .size-chip {
+    padding: 5px 10px;
+    border-radius: 7px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    transition: background var(--transition), color var(--transition), border-color var(--transition), box-shadow var(--transition);
+    white-space: nowrap;
+  }
+  .size-chip:hover {
+    background: var(--surface-3);
+    color: var(--text-primary);
+    border-color: var(--border-accent);
+  }
+  .size-chip.active {
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+    color: var(--accent);
+    border-color: var(--border-accent);
+    box-shadow: 0 0 8px var(--accent-glow);
+  }
 </style>
 </head>
 <body>
@@ -652,9 +937,16 @@
       <input type="file" id="file-input" accept=".json">
     </label>
     <input type="text" id="search" placeholder="Поиск по ID...">
-    <select id="size-filter">
-      <option value="">Все размеры</option>
-    </select>
+    <div class="size-picker-wrap">
+      <button id="size-picker-btn">
+        <span id="size-picker-label">Размер</span>
+        <span class="arrow">▼</span>
+      </button>
+      <div id="size-dropdown">
+        <div class="size-dropdown-title">Размер нонограммы</div>
+        <div class="size-chips" id="size-chips"></div>
+      </div>
+    </div>
     <div class="nav-btns">
       <button id="prev-btn" disabled>← Пред</button>
       <button id="next-btn" disabled>След →</button>
@@ -663,11 +955,20 @@
     <button id="reset-btn">Сброс</button>
     <span id="status"></span>
   </div>
+  <button id="sidebar-toggle" title="Список нонограмм">☰ Список</button>
   <button class="btn-icon" id="settings-btn" title="Настройки">⚙</button>
 </header>
+<div id="sidebar-backdrop"></div>
 
 <main>
   <div id="sidebar">
+    <div id="history-section" class="empty">
+      <div id="history-header">
+        <span>📂 История</span>
+        <button id="clear-history-btn" style="font-size:0.69rem;padding:2px 7px;border-radius:5px;">Очистить</button>
+      </div>
+      <div id="history-list"></div>
+    </div>
     <div id="sidebar-header">
       <span id="list-count">Загрузите файл</span>
     </div>
@@ -790,6 +1091,99 @@ let currentIndex = -1;
 let showSolution = false;
 let userGrid = [];
 let cellSize = 26;
+let currentKey = null;
+
+// ─── History (localStorage) ───────────────────────────────
+const HISTORY_KEY = 'nv-history';
+
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || {}; } catch { return {}; }
+}
+
+function saveProgress(key) {
+  if (!key || !userGrid.length) return;
+  const history = loadHistory();
+  history[key] = { grid: userGrid.map(r => [...r]), savedAt: Date.now() };
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  renderHistory();
+}
+
+function deleteProgress(key) {
+  const history = loadHistory();
+  delete history[key];
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  renderHistory();
+}
+
+function clearAllHistory() {
+  localStorage.removeItem(HISTORY_KEY);
+  renderHistory();
+}
+
+function progressPercent(grid) {
+  const total = grid.length * grid[0].length;
+  const filled = grid.reduce((s, r) => s + r.filter(v => v > 0).length, 0);
+  return Math.round((filled / total) * 100);
+}
+
+function renderHistory() {
+  const history = loadHistory();
+  const keys = Object.keys(history).sort((a, b) => history[b].savedAt - history[a].savedAt);
+  const section = document.getElementById('history-section');
+  const list = document.getElementById('history-list');
+
+  section.classList.toggle('empty', keys.length === 0);
+  list.innerHTML = '';
+
+  keys.forEach(key => {
+    const item = document.createElement('div');
+    item.className = 'history-item' + (key === currentKey ? ' selected' : '');
+
+    const name = document.createElement('span');
+    name.className = 'history-item-name';
+    name.textContent = key;
+
+    const pct = document.createElement('span');
+    pct.className = 'history-progress';
+    pct.textContent = progressPercent(history[key].grid) + '%';
+
+    const del = document.createElement('button');
+    del.className = 'history-del';
+    del.textContent = '×';
+    del.title = 'Удалить из истории';
+    del.addEventListener('click', e => {
+      e.stopPropagation();
+      deleteProgress(key);
+    });
+
+    item.appendChild(name);
+    item.appendChild(pct);
+    item.appendChild(del);
+
+    item.addEventListener('click', () => {
+      const idx = filteredKeys.indexOf(key);
+      if (idx !== -1) {
+        selectPuzzle(idx);
+      } else {
+        // puzzle might be filtered out — load it directly
+        currentKey = key;
+        const saved = loadHistory()[key];
+        if (saved) userGrid = saved.grid.map(r => [...r]);
+        showSolution = false;
+        document.getElementById('show-solution').classList.remove('active');
+        document.getElementById('show-solution').textContent = 'Решение';
+        renderPuzzle(key);
+        renderHistory();
+      }
+    });
+
+    list.appendChild(item);
+  });
+}
+
+document.getElementById('clear-history-btn').addEventListener('click', () => {
+  if (confirm('Очистить всю историю?')) clearAllHistory();
+});
 
 // ─── Theme ────────────────────────────────────────────────
 const savedTheme = localStorage.getItem('nv-theme') || 'dark';
@@ -863,25 +1257,66 @@ document.getElementById('file-input').addEventListener('change', e => {
   reader.readAsText(file);
 });
 
+let selectedSize = '';
+
+// ─── Size picker ──────────────────────────────────────────
+const pickerBtn = document.getElementById('size-picker-btn');
+const sizeDropdown = document.getElementById('size-dropdown');
+
+pickerBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  const isOpen = sizeDropdown.classList.contains('open');
+  sizeDropdown.classList.toggle('open', !isOpen);
+  pickerBtn.classList.toggle('open', !isOpen);
+});
+
+document.addEventListener('click', () => {
+  sizeDropdown.classList.remove('open');
+  pickerBtn.classList.remove('open');
+});
+
+sizeDropdown.addEventListener('click', e => e.stopPropagation());
+
 function initSizeFilter() {
   const sizes = new Set(puzzleKeys.map(k => k.split('_')[1]));
-  const sel = document.getElementById('size-filter');
-  sel.innerHTML = '<option value="">Все размеры</option>';
+  const chips = document.getElementById('size-chips');
+  chips.innerHTML = '';
+
+  // "All" chip
+  const allChip = document.createElement('div');
+  allChip.className = 'size-chip' + (selectedSize === '' ? ' active' : '');
+  allChip.textContent = 'Все';
+  allChip.dataset.size = '';
+  chips.appendChild(allChip);
+
   [...sizes].sort().forEach(s => {
-    const o = document.createElement('option');
-    o.value = s; o.textContent = s;
-    sel.appendChild(o);
+    const chip = document.createElement('div');
+    chip.className = 'size-chip' + (selectedSize === s ? ' active' : '');
+    chip.textContent = s;
+    chip.dataset.size = s;
+    chips.appendChild(chip);
+  });
+
+  chips.querySelectorAll('.size-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      selectedSize = chip.dataset.size;
+      document.getElementById('size-picker-label').textContent =
+        selectedSize ? selectedSize : 'Размер';
+      chips.querySelectorAll('.size-chip').forEach(c =>
+        c.classList.toggle('active', c.dataset.size === selectedSize));
+      sizeDropdown.classList.remove('open');
+      pickerBtn.classList.remove('open');
+      applyFilter();
+    });
   });
 }
 
-document.getElementById('size-filter').addEventListener('change', applyFilter);
 document.getElementById('search').addEventListener('input', applyFilter);
 
 function applyFilter() {
   const search = document.getElementById('search').value.toLowerCase();
-  const size = document.getElementById('size-filter').value;
   filteredKeys = puzzleKeys.filter(k => {
-    if (size && !k.endsWith(size)) return false;
+    if (selectedSize && k.split('_')[1] !== selectedSize) return false;
     if (search && !k.toLowerCase().includes(search)) return false;
     return true;
   });
@@ -909,13 +1344,15 @@ function renderSidebar() {
 
 function selectPuzzle(index) {
   currentIndex = index;
+  currentKey = filteredKeys[index];
   showSolution = false;
   const btn = document.getElementById('show-solution');
   btn.classList.remove('active');
   btn.textContent = 'Решение';
   renderSidebar();
+  renderHistory();
   updateNavBtns();
-  renderPuzzle(filteredKeys[index]);
+  renderPuzzle(currentKey);
   const items = document.querySelectorAll('.puzzle-item');
   if (items[index]) items[index].scrollIntoView({ block: 'nearest' });
 }
@@ -946,7 +1383,10 @@ document.getElementById('reset-btn').addEventListener('click', () => {
   btn.classList.remove('active');
   btn.textContent = 'Решение';
   userGrid = userGrid.map(r => r.map(() => 0));
-  if (filteredKeys[currentIndex]) renderPuzzle(filteredKeys[currentIndex]);
+  if (currentKey) {
+    deleteProgress(currentKey);
+    renderPuzzle(currentKey);
+  }
 });
 
 document.addEventListener('keydown', e => {
@@ -996,7 +1436,10 @@ function renderPuzzle(key) {
   document.getElementById('legend').style.display = showSolution ? 'none' : 'flex';
 
   if (!showSolution) {
-    if (!userGrid.length || userGrid.length !== rows || userGrid[0].length !== cols) {
+    const saved = loadHistory()[key];
+    if (saved && saved.grid.length === rows && saved.grid[0].length === cols) {
+      userGrid = saved.grid.map(r => [...r]);
+    } else if (!userGrid.length || userGrid.length !== rows || userGrid[0].length !== cols) {
       userGrid = Array.from({ length: rows }, () => new Array(cols).fill(0));
     }
   }
@@ -1054,13 +1497,7 @@ function renderPuzzle(key) {
         if (val === 1) td.classList.add('filled');
         else if (val === 2) td.classList.add('crossed');
 
-        td.addEventListener('mousedown', e => {
-          e.preventDefault();
-          if (e.button === 0) {
-            userGrid[r][c] = userGrid[r][c] === 1 ? 0 : 1;
-          } else if (e.button === 2) {
-            userGrid[r][c] = userGrid[r][c] === 2 ? 0 : 2;
-          }
+        const updateCell = () => {
           td.className = 'grid-cell';
           td.style.width = sz;
           td.style.height = sz;
@@ -1068,6 +1505,30 @@ function renderPuzzle(key) {
           if (c % 5 === 0) td.classList.add('border-left');
           if (userGrid[r][c] === 1) td.classList.add('filled');
           else if (userGrid[r][c] === 2) td.classList.add('crossed');
+          saveProgress(key);
+        };
+
+        td.addEventListener('mousedown', e => {
+          e.preventDefault();
+          if (e.button === 0) {
+            userGrid[r][c] = userGrid[r][c] === 1 ? 0 : 1;
+          } else if (e.button === 2) {
+            userGrid[r][c] = userGrid[r][c] === 2 ? 0 : 2;
+          }
+          updateCell();
+        });
+
+        // Touch: tap cycles 0→1→2→0
+        let touchMoved = false;
+        td.addEventListener('touchstart', e => {
+          touchMoved = false;
+        }, { passive: true });
+        td.addEventListener('touchmove', () => { touchMoved = true; }, { passive: true });
+        td.addEventListener('touchend', e => {
+          if (touchMoved) return;
+          e.preventDefault();
+          userGrid[r][c] = (userGrid[r][c] + 1) % 3;
+          updateCell();
         });
       }
 
@@ -1081,7 +1542,21 @@ function renderPuzzle(key) {
   wrap.appendChild(table);
 }
 
+// ─── Mobile sidebar toggle ────────────────────────────────
+const sidebar = document.getElementById('sidebar');
+const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+document.getElementById('sidebar-toggle').addEventListener('click', () => {
+  sidebar.classList.toggle('open');
+  sidebarBackdrop.classList.toggle('open');
+});
+sidebarBackdrop.addEventListener('click', () => {
+  sidebar.classList.remove('open');
+  sidebarBackdrop.classList.remove('open');
+});
+
 // ─── Auto-load ────────────────────────────────────────────
+renderHistory();
+
 fetch('Nonogram_dataset.json')
   .then(r => r.json())
   .then(data => {
@@ -1092,8 +1567,17 @@ fetch('Nonogram_dataset.json')
     status.className = 'loaded';
     initSizeFilter();
     applyFilter();
+    renderHistory();
   })
   .catch(() => {});
+</script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js');
+    });
+  }
 </script>
 </body>
 </html>
