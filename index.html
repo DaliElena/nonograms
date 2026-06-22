@@ -141,14 +141,6 @@
     flex-shrink: 0;
   }
 
-  .controls {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    flex: 1;
-    overflow: hidden;
-  }
-
   .header-right {
     display: flex;
     align-items: center;
@@ -290,6 +282,8 @@
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
   }
+
+  #history-list.collapsed { display: none; }
 
   #puzzle-list {
     overflow-y: auto;
@@ -757,7 +751,10 @@
 
   /* ─── Mobile ──────────────────────────────────────────── */
   #sidebar-toggle {
-    display: none;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.84rem;
   }
 
   #sidebar-backdrop {
@@ -781,10 +778,6 @@
     header { padding: 0 10px; gap: 6px; height: 48px; }
     header h1 { font-size: 0.9rem; }
     .header-divider { display: none; }
-    .controls { gap: 5px; overflow: hidden; }
-    #status { display: none; }
-    #search { display: none; }
-    .size-picker-wrap { display: none; }
     #reset-btn { display: none; }
 
     /* Sidebar becomes a bottom sheet */
@@ -827,13 +820,6 @@
       overflow: auto;
       touch-action: pan-y;
       overscroll-behavior: contain;
-    }
-
-    #sidebar-toggle {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 0.84rem;
     }
 
     main { flex-direction: column; }
@@ -930,21 +916,6 @@
 
 <header>
   <h1>⬛ Nonogram</h1>
-  <div class="header-divider"></div>
-  <div class="controls">
-    <input type="text" id="search" placeholder="Поиск по ID...">
-    <div class="size-picker-wrap">
-      <button id="size-picker-btn">
-        <span id="size-picker-label">Размер</span>
-        <span class="arrow">▼</span>
-      </button>
-      <div id="size-dropdown">
-        <div class="size-dropdown-title">Размер нонограммы</div>
-        <div class="size-chips" id="size-chips"></div>
-      </div>
-    </div>
-    <span id="status"></span>
-  </div>
   <div class="header-right">
     <button id="sidebar-toggle" title="Список нонограмм">☰ Список</button>
     <button class="toggle-btn" id="show-solution">Решение</button>
@@ -956,14 +927,26 @@
 
 <div id="sidebar">
   <div id="history-section" class="empty">
-    <div id="history-header">
-      <span>📂 История</span>
+    <div id="history-header" style="cursor:pointer;" title="Свернуть/развернуть историю">
+      <span>📂 История <span id="history-toggle-arrow" style="font-size:0.65rem;transition:transform 0.18s;display:inline-block;">▲</span></span>
       <button id="clear-history-btn" style="font-size:0.69rem;padding:2px 7px;border-radius:5px;">Очистить</button>
     </div>
     <div id="history-list"></div>
   </div>
   <div id="sidebar-header">
-    <span id="list-count">Загрузите файл</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+      <span>Список</span>
+      <div class="size-picker-wrap" style="position:relative;">
+        <button id="size-picker-btn" style="font-size:0.75rem;padding:3px 8px;">
+          <span id="size-picker-label">Все размеры</span>
+          <span class="arrow" style="font-size:0.6rem;">▼</span>
+        </button>
+        <div id="size-dropdown">
+          <div class="size-dropdown-title">Размер нонограммы</div>
+          <div class="size-chips" id="size-chips"></div>
+        </div>
+      </div>
+    </div>
   </div>
   <div id="puzzle-list"></div>
 </div>
@@ -1175,8 +1158,16 @@ function renderHistory() {
   });
 }
 
-document.getElementById('clear-history-btn').addEventListener('click', () => {
+document.getElementById('clear-history-btn').addEventListener('click', e => {
+  e.stopPropagation();
   if (confirm('Очистить всю историю?')) clearAllHistory();
+});
+
+let historyCollapsed = false;
+document.getElementById('history-header').addEventListener('click', () => {
+  historyCollapsed = !historyCollapsed;
+  document.getElementById('history-list').classList.toggle('collapsed', historyCollapsed);
+  document.getElementById('history-toggle-arrow').style.transform = historyCollapsed ? 'rotate(180deg)' : '';
 });
 
 // ─── Theme ────────────────────────────────────────────────
@@ -1273,7 +1264,7 @@ function initSizeFilter() {
     chip.addEventListener('click', () => {
       selectedSize = chip.dataset.size;
       document.getElementById('size-picker-label').textContent =
-        selectedSize ? selectedSize : 'Размер';
+        selectedSize ? selectedSize : 'Все размеры';
       chips.querySelectorAll('.size-chip').forEach(c =>
         c.classList.toggle('active', c.dataset.size === selectedSize));
       sizeDropdown.classList.remove('open');
@@ -1283,13 +1274,9 @@ function initSizeFilter() {
   });
 }
 
-document.getElementById('search').addEventListener('input', applyFilter);
-
 function applyFilter() {
-  const search = document.getElementById('search').value.toLowerCase();
   filteredKeys = puzzleKeys.filter(k => {
     if (selectedSize && k.split('_')[1] !== selectedSize) return false;
-    if (search && !k.toLowerCase().includes(search)) return false;
     return true;
   });
   renderSidebar();
@@ -1303,7 +1290,6 @@ function applyFilter() {
 
 function renderSidebar() {
   const list = document.getElementById('puzzle-list');
-  document.getElementById('list-count').textContent = `${filteredKeys.length} нонограмм`;
   list.innerHTML = '';
   filteredKeys.forEach((key, i) => {
     const div = document.createElement('div');
@@ -1541,9 +1527,6 @@ fetch('Nonogram_dataset.json')
   .then(data => {
     dataset = data;
     puzzleKeys = Object.keys(dataset.data);
-    const status = document.getElementById('status');
-    status.textContent = `${puzzleKeys.length} нонограмм`;
-    status.className = 'loaded';
     initSizeFilter();
     applyFilter();
     renderHistory();
