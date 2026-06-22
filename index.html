@@ -852,17 +852,17 @@
   #size-picker-btn.open .arrow { transform: rotate(180deg); }
 
   #size-dropdown {
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 0;
-    z-index: 200;
+    position: fixed;
+    top: auto;
+    right: 12px;
+    z-index: 1000;
     background: var(--surface);
     border: 1px solid var(--border-accent);
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.3);
     padding: 8px;
     display: none;
-    min-width: 160px;
+    width: 220px;
     animation: dropdownIn 0.15s cubic-bezier(0.4,0,0.2,1);
   }
   #size-dropdown.open { display: block; }
@@ -1226,17 +1226,42 @@ let selectedSize = '';
 const pickerBtn = document.getElementById('size-picker-btn');
 const sizeDropdown = document.getElementById('size-dropdown');
 
+const sizeDropdownOrigParent = sizeDropdown.parentNode;
+
+function positionDropdown() {
+  const btnRect = pickerBtn.getBoundingClientRect();
+  const spaceBelow = window.innerHeight - btnRect.bottom;
+  if (spaceBelow < 200) {
+    sizeDropdown.style.top = 'auto';
+    sizeDropdown.style.bottom = (window.innerHeight - btnRect.top + 6) + 'px';
+  } else {
+    sizeDropdown.style.bottom = 'auto';
+    sizeDropdown.style.top = (btnRect.bottom + 6) + 'px';
+  }
+}
+
 pickerBtn.addEventListener('click', e => {
   e.stopPropagation();
   const isOpen = sizeDropdown.classList.contains('open');
+  if (!isOpen) {
+    document.body.appendChild(sizeDropdown);
+    positionDropdown();
+  } else {
+    sizeDropdownOrigParent.appendChild(sizeDropdown);
+  }
   sizeDropdown.classList.toggle('open', !isOpen);
   pickerBtn.classList.toggle('open', !isOpen);
 });
 
-document.addEventListener('click', () => {
-  sizeDropdown.classList.remove('open');
-  pickerBtn.classList.remove('open');
-});
+function closeSizeDropdown() {
+  if (sizeDropdown.classList.contains('open')) {
+    sizeDropdownOrigParent.appendChild(sizeDropdown);
+    sizeDropdown.classList.remove('open');
+    pickerBtn.classList.remove('open');
+  }
+}
+
+document.addEventListener('click', closeSizeDropdown);
 
 sizeDropdown.addEventListener('click', e => e.stopPropagation());
 
@@ -1497,6 +1522,7 @@ const sidebarBackdrop = document.getElementById('sidebar-backdrop');
 function closeSidebar() {
   sidebar.classList.remove('open');
   sidebarBackdrop.classList.remove('open');
+  closeSizeDropdown();
 }
 
 document.getElementById('sidebar-toggle').addEventListener('click', e => {
@@ -1516,8 +1542,13 @@ sidebarBackdrop.addEventListener('click', e => {
   closeSidebar();
 });
 
-// prevent sidebar clicks from reaching the backdrop
-sidebar.addEventListener('click', e => e.stopPropagation());
+// prevent sidebar clicks from reaching the backdrop; close size dropdown on any sidebar click
+sidebar.addEventListener('click', e => {
+  e.stopPropagation();
+  if (!pickerBtn.contains(e.target) && !sizeDropdown.contains(e.target)) {
+    closeSizeDropdown();
+  }
+});
 
 // ─── Auto-load ────────────────────────────────────────────
 renderHistory();
