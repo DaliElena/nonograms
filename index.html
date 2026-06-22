@@ -1,253 +1,654 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nonogram Viewer</title>
 <style>
+  /* ─── Dark theme (default) ─────────────────────────────── */
+  :root {
+    --bg: #080812;
+    --surface: #10101c;
+    --surface-2: #16162a;
+    --surface-3: #1e1e38;
+    --border: rgba(255,255,255,0.06);
+    --border-accent: rgba(139,92,246,0.35);
+    --accent: #8b5cf6;
+    --accent-2: #06b6d4;
+    --accent-gradient: linear-gradient(135deg, #8b5cf6, #6d28d9);
+    --accent-glow: rgba(139,92,246,0.35);
+    --text-primary: #eef0ff;
+    --text-secondary: #7b87b8;
+    --text-muted: #3d4466;
+    --cell-bg: #10101c;
+    --cell-hover: rgba(139,92,246,0.18);
+    --cell-border: rgba(255,255,255,0.05);
+    --cell-border-group: rgba(139,92,246,0.28);
+    --cell-fill-gradient: linear-gradient(135deg, #8b5cf6, #6d28d9);
+    --cell-fill-border: rgba(139,92,246,0.6);
+    --cell-fill-shadow: rgba(139,92,246,0.35);
+    --cell-cross-color: #3d4466;
+    --success: #34d399;
+    --overlay-bg: rgba(8,8,18,0.7);
+    --header-bg: rgba(16,16,28,0.85);
+    --header-blur: blur(20px);
+    --sidebar-bg: rgba(16,16,28,0.7);
+    --sidebar-blur: blur(12px);
+    --settings-bg: #12121e;
+    --bg-orb-1: rgba(139,92,246,0.08);
+    --bg-orb-2: rgba(6,182,212,0.06);
+    --transition: 0.18s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  /* ─── Paper theme ──────────────────────────────────────── */
+  [data-theme="paper"] {
+    --bg: #f0ebe0;
+    --surface: #f7f3ea;
+    --surface-2: #ede7d9;
+    --surface-3: #e2dace;
+    --border: rgba(80,55,30,0.1);
+    --border-accent: rgba(120,80,40,0.35);
+    --accent: #7c5230;
+    --accent-2: #4e7c52;
+    --accent-gradient: linear-gradient(135deg, #7c5230, #5c3a1e);
+    --accent-glow: rgba(124,82,48,0.25);
+    --text-primary: #1c1108;
+    --text-secondary: #6b5540;
+    --text-muted: #b09e88;
+    --cell-bg: #faf7f0;
+    --cell-hover: rgba(124,82,48,0.1);
+    --cell-border: rgba(80,55,30,0.1);
+    --cell-border-group: rgba(124,82,48,0.22);
+    --cell-fill-gradient: linear-gradient(135deg, #2d2318, #1a1208);
+    --cell-fill-border: rgba(29,20,10,0.5);
+    --cell-fill-shadow: rgba(29,20,10,0.2);
+    --cell-cross-color: #b09e88;
+    --success: #4e7c52;
+    --overlay-bg: rgba(240,235,224,0.7);
+    --header-bg: rgba(247,243,234,0.92);
+    --header-blur: blur(16px);
+    --sidebar-bg: rgba(237,231,217,0.85);
+    --sidebar-blur: blur(8px);
+    --settings-bg: #f7f3ea;
+    --bg-orb-1: rgba(124,82,48,0.06);
+    --bg-orb-2: rgba(78,124,82,0.04);
+  }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    font-family: 'Segoe UI', system-ui, sans-serif;
-    background: #1a1a2e;
-    color: #e0e0e0;
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+    transition: background 0.35s ease, color 0.35s ease;
   }
 
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 20% 10%, var(--bg-orb-1) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 30% at 80% 80%, var(--bg-orb-2) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+    transition: background 0.35s ease;
+  }
+
+  /* ─── Header ───────────────────────────────────────────── */
   header {
-    background: #16213e;
-    border-bottom: 2px solid #0f3460;
-    padding: 16px 24px;
+    position: relative;
+    z-index: 10;
+    background: var(--header-bg);
+    backdrop-filter: var(--header-blur);
+    -webkit-backdrop-filter: var(--header-blur);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
     flex-wrap: wrap;
+    transition: background 0.35s ease, border-color 0.35s ease;
   }
 
   header h1 {
-    font-size: 1.4rem;
-    color: #e94560;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .header-divider {
+    width: 1px;
+    height: 20px;
+    background: var(--border);
+    flex-shrink: 0;
   }
 
   .controls {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 7px;
     flex-wrap: wrap;
     flex: 1;
   }
 
+  /* ─── Inputs ───────────────────────────────────────────── */
   select, input[type=text] {
-    background: #0f3460;
-    border: 1px solid #e94560;
-    color: #e0e0e0;
-    padding: 6px 10px;
-    border-radius: 6px;
-    font-size: 0.9rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 6px 11px;
+    border-radius: 8px;
+    font-size: 0.84rem;
+    outline: none;
+    transition: border-color var(--transition), box-shadow var(--transition), background 0.35s ease;
+    font-family: inherit;
   }
+  select:focus, input[type=text]:focus {
+    border-color: var(--border-accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  select { cursor: pointer; }
+  input[type=text] { width: 172px; }
+  input[type=text]::placeholder { color: var(--text-muted); }
 
-  input[type=text] { width: 200px; }
-
+  /* ─── Buttons ──────────────────────────────────────────── */
   button {
-    background: #e94560;
-    color: white;
-    border: none;
-    padding: 7px 16px;
-    border-radius: 6px;
+    background: var(--surface-2);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    padding: 6px 13px;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 0.9rem;
-    transition: background 0.2s;
+    font-size: 0.84rem;
+    font-family: inherit;
+    font-weight: 500;
+    transition:
+      background var(--transition),
+      color var(--transition),
+      border-color var(--transition),
+      box-shadow var(--transition),
+      transform var(--transition);
+    white-space: nowrap;
   }
-  button:hover { background: #c73652; }
-  button:disabled { background: #555; cursor: default; }
+  button:hover:not(:disabled) {
+    background: var(--surface-3);
+    color: var(--text-primary);
+    border-color: var(--border-accent);
+    box-shadow: 0 2px 14px var(--accent-glow);
+    transform: translateY(-1px);
+  }
+  button:active:not(:disabled) { transform: translateY(0); }
+  button:disabled { opacity: 0.3; cursor: default; }
 
-  .toggle-btn {
-    background: #0f3460;
-    border: 1px solid #e94560;
+  .toggle-btn.active {
+    background: color-mix(in srgb, var(--accent) 15%, transparent);
+    color: var(--accent);
+    border-color: var(--border-accent);
+    box-shadow: 0 0 10px var(--accent-glow);
   }
-  .toggle-btn.active { background: #e94560; }
+
+  .btn-icon {
+    padding: 6px 9px;
+    font-size: 1rem;
+    line-height: 1;
+  }
 
   #status {
-    font-size: 0.85rem;
-    color: #aaa;
+    font-size: 0.79rem;
+    color: var(--text-muted);
+    transition: color var(--transition);
   }
+  #status.loaded { color: var(--success); }
 
+  /* ─── File label ───────────────────────────────────────── */
+  #file-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 6px 13px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.84rem;
+    font-weight: 500;
+    transition:
+      background var(--transition),
+      color var(--transition),
+      border-color var(--transition),
+      box-shadow var(--transition),
+      transform var(--transition);
+  }
+  #file-label:hover {
+    background: var(--surface-3);
+    color: var(--text-primary);
+    border-color: var(--border-accent);
+    box-shadow: 0 2px 14px var(--accent-glow);
+    transform: translateY(-1px);
+  }
+  #file-input { display: none; }
+
+  .nav-btns { display: flex; gap: 5px; }
+
+  /* ─── Layout ───────────────────────────────────────────── */
   main {
     display: flex;
     flex: 1;
-    gap: 0;
+    overflow: hidden;
+    position: relative;
+    z-index: 1;
   }
 
+  /* ─── Sidebar ──────────────────────────────────────────── */
   #sidebar {
-    width: 220px;
-    min-width: 180px;
-    background: #16213e;
-    border-right: 1px solid #0f3460;
+    width: 205px;
+    min-width: 150px;
+    background: var(--sidebar-bg);
+    backdrop-filter: var(--sidebar-blur);
+    border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    flex-shrink: 0;
+    transition: background 0.35s ease, border-color 0.35s ease;
   }
 
   #sidebar-header {
-    padding: 10px 12px;
-    font-size: 0.8rem;
-    color: #aaa;
-    border-bottom: 1px solid #0f3460;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    padding: 9px 13px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
   }
 
   #puzzle-list {
     overflow-y: auto;
     flex: 1;
+    scrollbar-width: thin;
+    scrollbar-color: var(--surface-3) transparent;
   }
+  #puzzle-list::-webkit-scrollbar { width: 4px; }
+  #puzzle-list::-webkit-scrollbar-track { background: transparent; }
+  #puzzle-list::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 2px; }
 
   .puzzle-item {
-    padding: 8px 12px;
+    padding: 8px 13px;
     cursor: pointer;
-    font-size: 0.85rem;
-    border-bottom: 1px solid #0f3460;
-    transition: background 0.15s;
+    font-size: 0.81rem;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+    transition: background var(--transition), color var(--transition), padding-left var(--transition);
+    position: relative;
+    overflow: hidden;
   }
-  .puzzle-item:hover { background: #0f3460; }
-  .puzzle-item.selected { background: #e94560; color: white; }
+  .puzzle-item::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 2px;
+    background: var(--accent);
+    transform: scaleY(0);
+    transition: transform var(--transition);
+    border-radius: 0 2px 2px 0;
+  }
+  .puzzle-item:hover {
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    color: var(--text-primary);
+    padding-left: 17px;
+  }
+  .puzzle-item:hover::before { transform: scaleY(1); }
+  .puzzle-item.selected {
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    color: var(--accent);
+    padding-left: 17px;
+  }
+  .puzzle-item.selected::before { transform: scaleY(1); }
 
+  /* ─── Content ──────────────────────────────────────────── */
   #content {
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 24px;
+    padding: 26px 22px;
     overflow: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--surface-3) transparent;
   }
 
   #puzzle-title {
-    font-size: 1.1rem;
-    margin-bottom: 16px;
-    color: #e94560;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 18px;
+    color: var(--text-secondary);
+    letter-spacing: 0.02em;
+    padding: 5px 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
   }
 
   #nonogram-wrap {
     overflow: auto;
     max-width: 100%;
+    scrollbar-width: thin;
+    scrollbar-color: var(--surface-3) transparent;
   }
 
+  /* ─── Table ────────────────────────────────────────────── */
   table.nonogram {
     border-collapse: collapse;
     table-layout: fixed;
+    animation: fadeIn 0.22s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
 
   .clue-cell {
     text-align: center;
     vertical-align: bottom;
-    font-size: 0.7rem;
-    color: #ccc;
+    font-size: 0.67rem;
+    font-weight: 500;
+    color: var(--text-secondary);
     padding: 2px 3px;
-    min-width: 24px;
-    min-height: 24px;
-    line-height: 1.2;
+    line-height: 1.3;
     white-space: nowrap;
+    font-feature-settings: 'tnum';
+    transition: color 0.35s ease;
   }
-
   .clue-cell.row-clue {
     text-align: right;
     vertical-align: middle;
-    white-space: nowrap;
-    padding-right: 6px;
-  }
-
-  .clue-cell.col-clue {
-    writing-mode: initial;
-    width: 24px;
-  }
-
-  .col-clue-inner {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 1px;
+    padding-right: 8px;
   }
 
   td.grid-cell {
-    width: 24px;
-    height: 24px;
-    border: 1px solid #2a2a4a;
     cursor: pointer;
-    background: #1a1a2e;
-    transition: background 0.1s;
-  }
-
-  td.grid-cell:hover { background: #2a4060; }
-  td.grid-cell.filled { background: #e94560; border-color: #c73652; }
-  td.grid-cell.crossed {
-    background: #1a1a2e;
+    background: var(--cell-bg);
+    border: 1px solid var(--cell-border);
+    transition:
+      background var(--transition),
+      border-color var(--transition),
+      box-shadow var(--transition);
     position: relative;
+  }
+  td.grid-cell:hover {
+    background: var(--cell-hover);
+    border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+    z-index: 1;
+  }
+  td.grid-cell.filled {
+    background: var(--cell-fill-gradient);
+    border-color: var(--cell-fill-border);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 0 7px var(--cell-fill-shadow);
+    animation: cellPop 0.17s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes cellPop {
+    from { transform: scale(0.72); opacity: 0.5; }
+    to   { transform: scale(1);    opacity: 1; }
   }
   td.grid-cell.crossed::after {
     content: '×';
     position: absolute;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 14px;
-    color: #555;
+    font-size: 12px;
+    color: var(--cell-cross-color);
     line-height: 1;
+    animation: cellPop 0.17s cubic-bezier(0.34,1.56,0.64,1);
   }
 
-  /* Group borders every 5 cells */
-  .grid-cell.border-top { border-top: 2px solid #4a4a6a !important; }
-  .grid-cell.border-left { border-left: 2px solid #4a4a6a !important; }
+  .grid-cell.border-top  { border-top:  1.5px solid var(--cell-border-group) !important; }
+  .grid-cell.border-left { border-left: 1.5px solid var(--cell-border-group) !important; }
 
+  /* ─── Empty state ──────────────────────────────────────── */
   #no-puzzle {
-    color: #555;
-    font-size: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
     margin-top: 80px;
+    color: var(--text-muted);
   }
+  .no-puzzle-icon {
+    width: 52px; height: 52px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+  }
+  .no-puzzle-text { font-size: 0.88rem; }
 
+  /* ─── Legend ───────────────────────────────────────────── */
   .legend {
     display: flex;
-    gap: 16px;
-    margin-top: 16px;
-    font-size: 0.8rem;
-    color: #aaa;
+    gap: 18px;
+    margin-top: 18px;
+    font-size: 0.77rem;
+    color: var(--text-secondary);
     flex-wrap: wrap;
     justify-content: center;
+    padding: 9px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    transition: background 0.35s ease, border-color 0.35s ease;
   }
-  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-item { display: flex; align-items: center; gap: 7px; }
   .legend-box {
-    width: 16px; height: 16px; border: 1px solid #555;
-    border-radius: 2px;
+    width: 15px; height: 15px;
+    border: 1px solid var(--cell-border);
+    border-radius: 3px;
+    flex-shrink: 0;
+    background: var(--cell-bg);
   }
-  .legend-box.filled { background: #e94560; }
-  .legend-box.crossed { background: #1a1a2e; position: relative; }
-  .legend-box.crossed::after { content: '×'; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 11px; color: #555; }
+  .legend-box.filled {
+    background: var(--cell-fill-gradient);
+    border-color: var(--cell-fill-border);
+    box-shadow: 0 0 5px var(--cell-fill-shadow);
+  }
+  .legend-box.crossed { position: relative; }
+  .legend-box.crossed::after {
+    content: '×';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    font-size: 10px;
+    color: var(--cell-cross-color);
+  }
 
-  #file-label {
-    background: #0f3460;
-    border: 1px solid #e94560;
-    color: #e0e0e0;
-    padding: 6px 12px;
-    border-radius: 6px;
+  /* ─── Settings overlay ─────────────────────────────────── */
+  #settings-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    pointer-events: none;
+  }
+  #settings-overlay.open { pointer-events: all; }
+
+  #settings-backdrop {
+    position: absolute;
+    inset: 0;
+    background: var(--overlay-bg);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+  #settings-overlay.open #settings-backdrop { opacity: 1; }
+
+  #settings-panel {
+    position: relative;
+    z-index: 1;
+    width: 300px;
+    height: 100%;
+    background: var(--settings-bg);
+    border-left: 1px solid var(--border);
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), background 0.35s ease;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    box-shadow: -8px 0 32px rgba(0,0,0,0.25);
+  }
+  #settings-overlay.open #settings-panel { transform: translateX(0); }
+
+  .settings-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .settings-head h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .settings-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.1rem;
     cursor: pointer;
-    font-size: 0.9rem;
+    padding: 4px 6px;
+    border-radius: 6px;
+    line-height: 1;
+    transition: background var(--transition), color var(--transition);
   }
-  #file-label:hover { background: #1a3a70; }
-  #file-input { display: none; }
+  .settings-close:hover { background: var(--surface-3); color: var(--text-primary); transform: none; box-shadow: none; }
 
-  .nav-btns { display: flex; gap: 6px; }
+  .settings-body { padding: 20px; display: flex; flex-direction: column; gap: 24px; }
+
+  .settings-section-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+
+  /* Theme cards */
+  .theme-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .theme-card {
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    cursor: pointer;
+    transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--surface-2);
+  }
+  .theme-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px var(--accent-glow); }
+  .theme-card.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .theme-card-preview {
+    width: 100%;
+    height: 54px;
+    border-radius: 7px;
+    overflow: hidden;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .theme-card-preview svg { width: 100%; height: 100%; }
+  .theme-card-name {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: center;
+  }
+  .theme-card-desc {
+    font-size: 0.71rem;
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  /* Cell size slider */
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .slider-row label {
+    font-size: 0.84rem;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    min-width: 90px;
+  }
+  input[type=range] {
+    flex: 1;
+    accent-color: var(--accent);
+    cursor: pointer;
+    height: 4px;
+  }
+  .slider-val {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-feature-settings: 'tnum';
+    min-width: 30px;
+    text-align: right;
+  }
+
+  /* Settings info */
+  .settings-info {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .settings-info kbd {
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 0.75rem;
+    font-family: monospace;
+    color: var(--text-primary);
+  }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Nonogram Viewer</h1>
+  <h1>⬛ Nonogram</h1>
+  <div class="header-divider"></div>
   <div class="controls">
     <label id="file-label">
-      📂 Открыть файл
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Открыть файл
       <input type="file" id="file-input" accept=".json">
     </label>
     <input type="text" id="search" placeholder="Поиск по ID...">
@@ -255,13 +656,14 @@
       <option value="">Все размеры</option>
     </select>
     <div class="nav-btns">
-      <button id="prev-btn" disabled>◀ Пред</button>
-      <button id="next-btn" disabled>След ▶</button>
+      <button id="prev-btn" disabled>← Пред</button>
+      <button id="next-btn" disabled>След →</button>
     </div>
-    <button class="toggle-btn" id="show-solution">Показать решение</button>
+    <button class="toggle-btn" id="show-solution">Решение</button>
     <button id="reset-btn">Сброс</button>
     <span id="status"></span>
   </div>
+  <button class="btn-icon" id="settings-btn" title="Настройки">⚙</button>
 </header>
 
 <main>
@@ -273,15 +675,112 @@
   </div>
 
   <div id="content">
-    <div id="no-puzzle">Загрузите файл с нанограмами</div>
+    <div id="no-puzzle">
+      <div class="no-puzzle-icon">⬛</div>
+      <div class="no-puzzle-text">Загрузите файл с нонограммами</div>
+    </div>
     <div id="puzzle-title" style="display:none"></div>
     <div id="nonogram-wrap"></div>
     <div class="legend" id="legend" style="display:none">
       <div class="legend-item"><div class="legend-box filled"></div>Заполнено (ЛКМ)</div>
       <div class="legend-item"><div class="legend-box crossed"></div>Пустое (ПКМ)</div>
+      <div class="legend-item" style="color:var(--text-muted)">← → для навигации</div>
     </div>
   </div>
 </main>
+
+<!-- Settings panel -->
+<div id="settings-overlay">
+  <div id="settings-backdrop"></div>
+  <div id="settings-panel">
+    <div class="settings-head">
+      <h2>Настройки</h2>
+      <button class="settings-close" id="settings-close">✕</button>
+    </div>
+    <div class="settings-body">
+
+      <div>
+        <div class="settings-section-label">Тема</div>
+        <div class="theme-cards">
+
+          <div class="theme-card active" data-theme="dark" id="card-dark">
+            <div class="theme-card-preview">
+              <svg viewBox="0 0 120 54" xmlns="http://www.w3.org/2000/svg">
+                <rect width="120" height="54" fill="#080812"/>
+                <rect width="120" height="12" fill="#10101c"/>
+                <rect x="4" y="2" width="28" height="8" rx="3" fill="#16162a"/>
+                <rect x="36" y="2" width="20" height="8" rx="3" fill="#16162a"/>
+                <rect x="60" y="2" width="20" height="8" rx="3" fill="#8b5cf6" opacity="0.8"/>
+                <rect x="4" y="14" width="28" height="38" fill="#10101c"/>
+                <rect x="6" y="17" width="24" height="5" rx="2" fill="#16162a"/>
+                <rect x="6" y="24" width="24" height="5" rx="2" fill="#1e1e38"/>
+                <rect x="6" y="31" width="24" height="5" rx="2" fill="#16162a"/>
+                <!-- mini grid -->
+                <rect x="40" y="18" width="6" height="6" rx="1" fill="#16162a" stroke="#ffffff10" stroke-width="0.5"/>
+                <rect x="47" y="18" width="6" height="6" rx="1" fill="#8b5cf6"/>
+                <rect x="54" y="18" width="6" height="6" rx="1" fill="#16162a" stroke="#ffffff10" stroke-width="0.5"/>
+                <rect x="61" y="18" width="6" height="6" rx="1" fill="#8b5cf6"/>
+                <rect x="40" y="25" width="6" height="6" rx="1" fill="#8b5cf6"/>
+                <rect x="47" y="25" width="6" height="6" rx="1" fill="#16162a" stroke="#ffffff10" stroke-width="0.5"/>
+                <rect x="54" y="25" width="6" height="6" rx="1" fill="#8b5cf6"/>
+                <rect x="61" y="25" width="6" height="6" rx="1" fill="#16162a" stroke="#ffffff10" stroke-width="0.5"/>
+              </svg>
+            </div>
+            <div class="theme-card-name">Ночь</div>
+            <div class="theme-card-desc">Тёмная тема с фиолетовым акцентом</div>
+          </div>
+
+          <div class="theme-card" data-theme="paper" id="card-paper">
+            <div class="theme-card-preview">
+              <svg viewBox="0 0 120 54" xmlns="http://www.w3.org/2000/svg">
+                <rect width="120" height="54" fill="#f0ebe0"/>
+                <rect width="120" height="12" fill="#f7f3ea"/>
+                <rect x="4" y="2" width="28" height="8" rx="3" fill="#ede7d9"/>
+                <rect x="36" y="2" width="20" height="8" rx="3" fill="#ede7d9"/>
+                <rect x="60" y="2" width="20" height="8" rx="3" fill="#7c5230" opacity="0.8"/>
+                <rect x="4" y="14" width="28" height="38" fill="#ede7d9"/>
+                <rect x="6" y="17" width="24" height="5" rx="2" fill="#e2dace"/>
+                <rect x="6" y="24" width="24" height="5" rx="2" fill="#d5cdc0"/>
+                <rect x="6" y="31" width="24" height="5" rx="2" fill="#e2dace"/>
+                <!-- mini grid -->
+                <rect x="40" y="18" width="6" height="6" rx="1" fill="#faf7f0" stroke="#50371e18" stroke-width="0.5"/>
+                <rect x="47" y="18" width="6" height="6" rx="1" fill="#2d2318"/>
+                <rect x="54" y="18" width="6" height="6" rx="1" fill="#faf7f0" stroke="#50371e18" stroke-width="0.5"/>
+                <rect x="61" y="18" width="6" height="6" rx="1" fill="#2d2318"/>
+                <rect x="40" y="25" width="6" height="6" rx="1" fill="#2d2318"/>
+                <rect x="47" y="25" width="6" height="6" rx="1" fill="#faf7f0" stroke="#50371e18" stroke-width="0.5"/>
+                <rect x="54" y="25" width="6" height="6" rx="1" fill="#2d2318"/>
+                <rect x="61" y="25" width="6" height="6" rx="1" fill="#faf7f0" stroke="#50371e18" stroke-width="0.5"/>
+              </svg>
+            </div>
+            <div class="theme-card-name">Бумага</div>
+            <div class="theme-card-desc">Светлая тема в тёплых бежевых тонах</div>
+          </div>
+
+        </div>
+      </div>
+
+      <div>
+        <div class="settings-section-label">Размер ячеек</div>
+        <div class="slider-row">
+          <label>Размер</label>
+          <input type="range" id="cell-size-slider" min="16" max="40" value="26" step="2">
+          <span class="slider-val" id="cell-size-val">26px</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="settings-section-label">Управление</div>
+        <div class="settings-info">
+          <kbd>←</kbd> <kbd>→</kbd> — предыдущая / следующая нонограмма<br><br>
+          <kbd>ЛКМ</kbd> — заполнить клетку<br>
+          <kbd>ПКМ</kbd> — пометить пустой (×)
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
 
 <script>
 let dataset = null;
@@ -290,18 +789,71 @@ let filteredKeys = [];
 let currentIndex = -1;
 let showSolution = false;
 let userGrid = [];
+let cellSize = 26;
 
-// --- File loading ---
+// ─── Theme ────────────────────────────────────────────────
+const savedTheme = localStorage.getItem('nv-theme') || 'dark';
+applyTheme(savedTheme);
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.querySelectorAll('.theme-card').forEach(c => {
+    c.classList.toggle('active', c.dataset.theme === theme);
+  });
+  localStorage.setItem('nv-theme', theme);
+}
+
+document.querySelectorAll('.theme-card').forEach(card => {
+  card.addEventListener('click', () => applyTheme(card.dataset.theme));
+});
+
+// ─── Settings panel ───────────────────────────────────────
+const overlay = document.getElementById('settings-overlay');
+document.getElementById('settings-btn').addEventListener('click', () => overlay.classList.add('open'));
+document.getElementById('settings-close').addEventListener('click', () => overlay.classList.remove('open'));
+document.getElementById('settings-backdrop').addEventListener('click', () => overlay.classList.remove('open'));
+
+// ─── Cell size slider ─────────────────────────────────────
+const sizeSlider = document.getElementById('cell-size-slider');
+const sizeVal = document.getElementById('cell-size-val');
+const savedSize = localStorage.getItem('nv-cell-size');
+if (savedSize) { cellSize = parseInt(savedSize); sizeSlider.value = cellSize; }
+sizeVal.textContent = cellSize + 'px';
+applyCellSize(cellSize);
+
+sizeSlider.addEventListener('input', () => {
+  cellSize = parseInt(sizeSlider.value);
+  sizeVal.textContent = cellSize + 'px';
+  applyCellSize(cellSize);
+  localStorage.setItem('nv-cell-size', cellSize);
+});
+
+function applyCellSize(size) {
+  document.documentElement.style.setProperty('--cell-size', size + 'px');
+  document.querySelectorAll('td.grid-cell').forEach(td => {
+    td.style.width = size + 'px';
+    td.style.height = size + 'px';
+  });
+  document.querySelectorAll('.clue-cell').forEach(td => {
+    td.style.minWidth = size + 'px';
+    td.style.minHeight = size + 'px';
+  });
+}
+
+// ─── File loading ─────────────────────────────────────────
 document.getElementById('file-input').addEventListener('change', e => {
   const file = e.target.files[0];
   if (!file) return;
-  document.getElementById('status').textContent = 'Загрузка...';
+  const status = document.getElementById('status');
+  status.textContent = 'Загрузка...';
+  status.className = '';
   const reader = new FileReader();
   reader.onload = evt => {
     try {
       dataset = JSON.parse(evt.target.result);
       puzzleKeys = Object.keys(dataset.data);
-      document.getElementById('status').textContent = `Загружено ${puzzleKeys.length} нанограм`;
+      status.textContent = `${puzzleKeys.length} нонограмм`;
+      status.className = 'loaded';
       initSizeFilter();
       applyFilter();
     } catch {
@@ -344,7 +896,7 @@ function applyFilter() {
 
 function renderSidebar() {
   const list = document.getElementById('puzzle-list');
-  document.getElementById('list-count').textContent = `${filteredKeys.length} нанограм`;
+  document.getElementById('list-count').textContent = `${filteredKeys.length} нонограмм`;
   list.innerHTML = '';
   filteredKeys.forEach((key, i) => {
     const div = document.createElement('div');
@@ -358,12 +910,12 @@ function renderSidebar() {
 function selectPuzzle(index) {
   currentIndex = index;
   showSolution = false;
-  document.getElementById('show-solution').classList.remove('active');
-  document.getElementById('show-solution').textContent = 'Показать решение';
+  const btn = document.getElementById('show-solution');
+  btn.classList.remove('active');
+  btn.textContent = 'Решение';
   renderSidebar();
   updateNavBtns();
   renderPuzzle(filteredKeys[index]);
-  // Scroll sidebar to selected
   const items = document.querySelectorAll('.puzzle-item');
   if (items[index]) items[index].scrollIntoView({ block: 'nearest' });
 }
@@ -384,20 +936,21 @@ document.getElementById('show-solution').addEventListener('click', () => {
   showSolution = !showSolution;
   const btn = document.getElementById('show-solution');
   btn.classList.toggle('active', showSolution);
-  btn.textContent = showSolution ? 'Скрыть решение' : 'Показать решение';
+  btn.textContent = showSolution ? 'Скрыть' : 'Решение';
   if (filteredKeys[currentIndex]) renderPuzzle(filteredKeys[currentIndex]);
 });
 
 document.getElementById('reset-btn').addEventListener('click', () => {
   showSolution = false;
-  document.getElementById('show-solution').classList.remove('active');
-  document.getElementById('show-solution').textContent = 'Показать решение';
+  const btn = document.getElementById('show-solution');
+  btn.classList.remove('active');
+  btn.textContent = 'Решение';
   userGrid = userGrid.map(r => r.map(() => 0));
   if (filteredKeys[currentIndex]) renderPuzzle(filteredKeys[currentIndex]);
 });
 
-// Keyboard navigation
 document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
   if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
     if (currentIndex > 0) selectPuzzle(currentIndex - 1);
   } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
@@ -405,32 +958,26 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// --- Parsing ---
+// ─── Parsing ──────────────────────────────────────────────
 function parseProblem(str) {
   const lines = str.trim().split('\n');
   const [rows, cols] = lines[0].trim().split(/\s+/).map(Number);
   const rowClues = [];
-  for (let i = 1; i <= rows; i++) {
-    rowClues.push(lines[i].trim().split(/\s+/).map(Number));
-  }
+  for (let i = 1; i <= rows; i++) rowClues.push(lines[i].trim().split(/\s+/).map(Number));
   const colClues = [];
-  for (let i = rows + 1; i < rows + 1 + cols; i++) {
-    colClues.push(lines[i].trim().split(/\s+/).map(Number));
-  }
+  for (let i = rows + 1; i < rows + 1 + cols; i++) colClues.push(lines[i].trim().split(/\s+/).map(Number));
   return { rows, cols, rowClues, colClues };
 }
 
 function parseSolution(str) {
   const lines = str.trim().split('\n');
-  const [rows, cols] = lines[0].trim().split(/\s+/).map(Number);
+  const [rows] = lines[0].trim().split(/\s+/).map(Number);
   const grid = [];
-  for (let i = 1; i <= rows; i++) {
-    grid.push(lines[i].trim().split(/\s+/).map(c => c === 'x' ? 1 : 0));
-  }
+  for (let i = 1; i <= rows; i++) grid.push(lines[i].trim().split(/\s+/).map(c => c === 'x' ? 1 : 0));
   return grid;
 }
 
-// --- Rendering ---
+// ─── Rendering ────────────────────────────────────────────
 function clearPuzzle() {
   document.getElementById('no-puzzle').style.display = '';
   document.getElementById('puzzle-title').style.display = 'none';
@@ -454,26 +1001,25 @@ function renderPuzzle(key) {
     }
   }
 
+  const sz = cellSize + 'px';
   const table = document.createElement('table');
   table.className = 'nonogram';
   table.addEventListener('contextmenu', e => e.preventDefault());
 
-  // Max col clue length (number of numbers per column)
   const maxColClueLen = Math.max(...colClues.map(c => c.length));
-  // Max row clue length (formatted string)
-  const maxRowClueLen = Math.max(...rowClues.map(c => c.join(' ').length));
 
-  // Header rows (col clues)
   for (let ci = 0; ci < maxColClueLen; ci++) {
     const tr = document.createElement('tr');
-    // Corner cell(s)
     const corner = document.createElement('td');
     corner.className = 'clue-cell';
+    corner.style.minWidth = sz;
+    corner.style.minHeight = sz;
     tr.appendChild(corner);
-    // Col clue rows
     for (let c = 0; c < cols; c++) {
       const td = document.createElement('td');
       td.className = 'clue-cell col-clue';
+      td.style.minWidth = sz;
+      td.style.minHeight = sz;
       const clue = colClues[c];
       const offset = maxColClueLen - clue.length;
       const val = ci - offset;
@@ -483,19 +1029,20 @@ function renderPuzzle(key) {
     table.appendChild(tr);
   }
 
-  // Grid rows
   for (let r = 0; r < rows; r++) {
     const tr = document.createElement('tr');
-
-    // Row clue
     const clueCell = document.createElement('td');
     clueCell.className = 'clue-cell row-clue';
+    clueCell.style.minWidth = sz;
+    clueCell.style.minHeight = sz;
     clueCell.textContent = rowClues[r].join(' ');
     tr.appendChild(clueCell);
 
     for (let c = 0; c < cols; c++) {
       const td = document.createElement('td');
       td.className = 'grid-cell';
+      td.style.width = sz;
+      td.style.height = sz;
 
       if (r % 5 === 0) td.classList.add('border-top');
       if (c % 5 === 0) td.classList.add('border-left');
@@ -515,6 +1062,8 @@ function renderPuzzle(key) {
             userGrid[r][c] = userGrid[r][c] === 2 ? 0 : 2;
           }
           td.className = 'grid-cell';
+          td.style.width = sz;
+          td.style.height = sz;
           if (r % 5 === 0) td.classList.add('border-top');
           if (c % 5 === 0) td.classList.add('border-left');
           if (userGrid[r][c] === 1) td.classList.add('filled');
@@ -532,20 +1081,19 @@ function renderPuzzle(key) {
   wrap.appendChild(table);
 }
 
-// Auto-load if file is in same dir (won't work from file://, need server)
-// Try fetch for convenience when served
+// ─── Auto-load ────────────────────────────────────────────
 fetch('Nonogram_dataset.json')
   .then(r => r.json())
   .then(data => {
     dataset = data;
     puzzleKeys = Object.keys(dataset.data);
-    document.getElementById('status').textContent = `Загружено ${puzzleKeys.length} нанограм`;
+    const status = document.getElementById('status');
+    status.textContent = `${puzzleKeys.length} нонограмм`;
+    status.className = 'loaded';
     initSizeFilter();
     applyFilter();
   })
-  .catch(() => {
-    // User will load manually
-  });
+  .catch(() => {});
 </script>
 </body>
 </html>
